@@ -1,6 +1,4 @@
-# Reliable File Transfer using UDP (URFT)
-
-This program implements a Reliable File Transfer system using the User Datagram Protocol (UDP) to transfer files from a client to a server. The system is designed to handle issues such as packet loss and packet duplication, ensuring reliable data transmission over UDP.
+# Network project
 
 ## Requirements
 

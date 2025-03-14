@@ -50,7 +50,10 @@ while True:
             server_socket.sendto(f"ACK{sep}{expected_seq}".encode('utf-8'), client_address)
             print(f"ส่ง ACK: {expected_seq}")
         else:
-            print(f"ได้รับแพ็กเก็ตลำดับไม่ตรงกัน : {expected_seq}, ได้รับ: {seq}")
+            # ส่ง ACK ซ้ำ เพื่อแจ้งให้ไคลเอนต์ส่งข้อมูลที่ขาดไป
+            server_socket.sendto(f"ACK{sep}{expected_seq}".encode('utf-8'), client_address)
+            print(f"ได้รับแพ็กเก็ตผิดลำดับ, ต้องการ: {expected_seq} แต่ได้: {seq}, ส่ง ACK ซ้ำ")
+
 
     except socket.timeout:
         print("ไม่มีการเชื่อมต่อ หรือหมดเวลาเชื่อมต่อ")

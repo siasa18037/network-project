@@ -3,7 +3,7 @@ import sys
 from datetime import datetime as dt
 
 buf = 1024  # ขนาด buffer
-timeout = 1.0  # ระยะเวลา timeout
+timeout = 0.25  # ระยะเวลา timeout
 sep = '/||/'  # ตัวแบ่งข้อมูลใน packet
 current_ack = 0  # ลำดับ packet ที่รอรับ ACK
 
@@ -44,18 +44,23 @@ while True:
 while current_ack < file_size:
     chunk = file_data[current_ack:current_ack + buf]
     packet = f"{current_ack}{sep}".encode('utf-8') + chunk
-    client_socket.sendto(packet, server_address)
-    print(f"กำลังส่งแพ็กเก็ตที่: {current_ack}")
 
-    try:
-        ack_data, server = client_socket.recvfrom(40)
-        ack_parts = ack_data.decode('utf-8').split(sep)
-        ack_seq = int(ack_parts[1])
-        if ack_seq == current_ack + buf:
-            current_ack = ack_seq
-            print(f"ได้รับ ACK: {current_ack}")
-    except socket.timeout:
-        print("--หมดเวลารอ ติดส่งใหม่อีกครั้ง--")
+    while True:  # ลูปจนกว่าจะได้รับ ACK
+        client_socket.sendto(packet, server_address)
+        print(f"กำลังส่งแพ็กเก็ตที่: {current_ack}")
+
+        try:
+            ack_data, server = client_socket.recvfrom(40)
+            ack_parts = ack_data.decode('utf-8').split(sep)
+            ack_seq = int(ack_parts[1])
+
+            if ack_seq == current_ack + buf:
+                current_ack = ack_seq
+                print(f"ได้รับ ACK: {current_ack}")
+                break  # ออกจากลูปถ้าได้รับ ACK
+        except socket.timeout:
+            print("--หมดเวลารอ ACK, ส่งซ้ำอีกครั้ง--")
+
 
 # ส่งแพ็กเก็ตสิ้นสุดการส่ง
 packet = f'-1{sep}FIN'.encode('utf-8')

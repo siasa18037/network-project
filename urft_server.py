@@ -3,70 +3,68 @@ import sys
 import os
 from datetime import datetime as dt
 
-buf = 1024  # ขนาด buffer
-timeout = 60  # ระยะเวลา timeout
-sep = '/||/'  # ตัวแบ่งข้อมูลใน packet
-
+buf = 1024
+timeout = 60
+sep = '/||/'
 file_name = ''
-file_data = bytearray()  # ใช้ bytearray เพื่อเก็บข้อมูลไบนารี
-expected_seq = 0  # ลำดับ packet ที่คาดหวัง
-
+file_data = bytearray()  
+expected_seq = 0
+wndw = {}
 
 if len(sys.argv) < 3:
-    print("python urft_server.py <IP เซิร์ฟเวอร์> <พอร์ตเซิร์ฟเวอร์>")
+    print("python urft_server.py <server_ip> <server_port>")  
     sys.exit(1)
 
-# สร้าง UDP socket
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 server_address = (sys.argv[1], int(sys.argv[2]))
 server_socket.bind(server_address)
 server_socket.settimeout(timeout)
 
-print("เซิร์ฟเวอร์พร้อมทำงาน")
+print("--------- Server online พร้อมรับข้อมูล ---------")
+
 while True:
     try:
-        # รับข้อมูลจาก client
         data, client_address = server_socket.recvfrom(buf + 20)
-        packet_parts = data.split(sep.encode('utf-8'))  # แยกข้อมูลไบนารี
+        packet_parts = data.decode('utf-8').split(sep)
 
-        seq = int(packet_parts[0].decode('utf-8'))  # ลำดับ packet
-        payload = packet_parts[1]  # ข้อมูล payload
+        seq = int(packet_parts[0])
+        payload = packet_parts[1].encode("utf-8")  
 
-        print(f"กำลังรับแพ็กเก็ตลำดับที่: {seq}, ลำดับที่คาดหวัง: {expected_seq}")
+        print(f"กำลังรับข้อมูล SEQ: {seq} คาดหวัง: {expected_seq} 📨")
         
-        if seq == -2:  # เริ่มต้นการส่ง (ส่งชื่อไฟล์)
-            file_name = os.path.basename(payload.decode('utf-8'))  # ใช้เฉพาะชื่อไฟล์ ไม่รวม path
+        if seq == -2: 
+            file_name = payload.decode("utf-8")  
             server_socket.sendto(f"ACK{sep}{dt.now()}".encode('utf-8'), client_address)
-            print(f"ได้รับชื่อไฟล์: {file_name}")
+            print("ได้รับชื่อไฟล์แล้ว 📂")
             continue
-        if seq == -1:  # สิ้นสุดการส่ง
-            print("การรับไฟล์เสร็จสิ้น!")
-            packet = f'FIN{sep}{seq}'.encode('utf-8')
+
+        if seq == -1:
+            print("เสร็จสิ้นการรับไฟล์! ✅")
+            packet = f'{sep}{seq}'.encode('utf-8')
             server_socket.sendto(packet, client_address)
             break
-        if seq == expected_seq:  # รับ packet ตามลำดับที่คาดหวัง
-            file_data.extend(payload)  # เพิ่มข้อมูลไบนารี
-            expected_seq += buf  # อัปเดตลำดับที่คาดหวัง
-            server_socket.sendto(f"ACK{sep}{expected_seq}".encode('utf-8'), client_address)
-            print(f"ส่ง ACK: {expected_seq}")
-        else:
-            # ส่ง ACK ซ้ำ เพื่อแจ้งให้ไคลเอนต์ส่งข้อมูลที่ขาดไป
-            server_socket.sendto(f"ACK{sep}{expected_seq}".encode('utf-8'), client_address)
-            print(f"ได้รับแพ็กเก็ตผิดลำดับ, ต้องการ: {expected_seq} แต่ได้: {seq}, ส่ง ACK ซ้ำ")
 
+        wndw[seq] = payload  
+
+        while expected_seq in wndw:
+            file_data.extend(wndw[expected_seq])  
+            expected_seq += buf
+
+        server_socket.sendto(f"ACK{sep}{expected_seq}".encode('utf-8'), client_address)
+        print(f"กำลังส่ง ACK: {expected_seq} 📨")
 
     except socket.timeout:
-        print("ไม่มีการเชื่อมต่อ หรือหมดเวลาเชื่อมต่อ")
+        print("ไม่พบการเชื่อมต่อจากไคลเอนต์แล้ว ⏳")
         break
+    
+    except ConnectionResetError as e:
+        print("การเชื่อมต่อถูกปิดโดยเซิร์ฟเวอร์ หรือการเชื่อมต่อล้มเหลว ⛔")
+
 
 server_socket.close()
 
-# บันทึกข้อมูลลงไฟล์
-if file_name:
-    try:
-        with open(file_name, "wb") as file:
-            file.write(file_data)
-        print(f"บันทึกไฟล์สำเร็จ: {file_name}")
-    except Exception as e:
-        print(f"เกิดข้อผิดพลาดในการบันทึกไฟล์: {e}")
+with open(file_name, "wb") as file:  
+    file.write(file_data)
 
+print(f"ไฟล์ {file_name} ถูกบันทึกเรียบร้อยแล้ว! 🎉")
+print("--------- จบการทำงานเเล้ว ---------")

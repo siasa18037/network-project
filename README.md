@@ -30,5 +30,5 @@ python urft_server.py <server_ip> <server_port>
 To send a file from the client to the server, run:
 
 ```bash
-python urft_client.py <server_ip> <server_port> <file_path>
+python urft_client.py <file_path> <server_ip> <server_port> 
 ```

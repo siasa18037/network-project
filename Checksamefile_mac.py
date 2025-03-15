@@ -10,8 +10,8 @@ def compare_files(file1, file2):
     return get_md5sum(file1) == get_md5sum(file2)
 
 # ตัวอย่างการใช้งาน
-file1 = "test/test.txt"
-file2 = "test.txt"
+file1 = "test/file.bin"
+file2 = "file.bin"
 
 if compare_files(file1, file2):
     print("ไฟล์ทั้งสองเหมือนกัน ✅")

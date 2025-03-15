@@ -58,7 +58,7 @@ while True:
         break
 
     except ConnectionResetError:
-        print("การเชื่อมต่อถูกปิดโดยเซิร์ฟเวอร์ หรือการเชื่อมต่อล้มเหลว ⛔")
+        print("การเชื่อมต่อถูกปิดโดยเซิร์ฟเวอร์")
 
 server_socket.close()
 
